@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { isNumber } from 'class-validator';
 import * as FirebaseAdmin from 'firebase-admin';
+import { merge } from 'rxjs';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class AppService {
@@ -33,6 +36,40 @@ export class AppService {
     await firestoreInstance.collection('users').doc(id).set(item);
 
     return item;
+  }
+
+  async updateUser(updateItem: UpdateUserDto): Promise<UpdateUserDto> {
+
+    const { id } = updateItem;
+
+    const firestoreInstance = new FirebaseAdmin.firestore.Firestore();
+
+    const userDocRef = firestoreInstance.collection('users').doc(id);
+
+    if (!userDocRef) {
+      await firestoreInstance.collection('users').doc(id).set(updateItem);
+    } else {
+      const existingDocument = (await userDocRef.get()).data();
+      const updatedValuesObject = { ...existingDocument };
+      for (var incomingProp in updateItem) {
+        for (var existingProp in existingDocument) {
+          if (existingProp === incomingProp) {
+            if (isNumber(existingDocument[existingProp])) {
+              // if we just want ro replace value (= instead +=), line should look like:
+              // updatedValuesObject[existingProp] = updateItem[incomingProp]; 
+              // btw, we could fully skip if/else statement
+              updatedValuesObject[existingProp] += +updateItem[incomingProp];
+            } else {
+              updatedValuesObject[existingProp] = updateItem[incomingProp];
+            }
+          }
+        }
+
+        await userDocRef.set({ ...updateItem, ...updatedValuesObject });
+      }
+    }
+
+    return updateItem;
   }
 
   async deleteUser(id: string) {
