@@ -47,25 +47,31 @@ export class AppService {
     const userDocRef = firestoreInstance.collection('users').doc(id);
 
     if (!userDocRef) {
+      
       await firestoreInstance.collection('users').doc(id).set(updateItem);
+    
     } else {
+      
       const existingDocument = (await userDocRef.get()).data();
-      const updatedValuesObject = { ...existingDocument };
+
       for (var incomingProp in updateItem) {
+
         for (var existingProp in existingDocument) {
+          
           if (existingProp === incomingProp) {
+            
             if (isNumber(existingDocument[existingProp])) {
-              // if we just want ro replace value (= instead +=), line should look like:
-              // updatedValuesObject[existingProp] = updateItem[incomingProp]; 
-              // btw, we could fully skip if/else statement
-              updatedValuesObject[existingProp] += +updateItem[incomingProp];
+              // if we just want to replace value (= instead +=), line should looks like:
+              // existingDocument[existingProp] = updateItem[incomingProp]; 
+              // btw, we could fully skip if/else statement and leave just else body
+              existingDocument[existingProp] += +updateItem[incomingProp];
             } else {
-              updatedValuesObject[existingProp] = updateItem[incomingProp];
+              existingDocument[existingProp] = updateItem[incomingProp];
             }
           }
         }
 
-        await userDocRef.set({ ...updateItem, ...updatedValuesObject });
+        await userDocRef.set({ ...updateItem, ...existingDocument });
       }
     }
 
